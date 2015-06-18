@@ -60,8 +60,68 @@ while True:
 			print 'new user login!'
 		elif t==P2PType.GETALL:
 			buf = [0xFF, 0xFF,P2PType.GETALLACK]
-			msg = myutils.convert_chr(buf)+chr(len(users))
-			server_sock.sendto(msg, addr)
+
+			if (len(users)==0):
+				msg = myutils.convert_chr(buf)+chr(len(users))
+				server_sock.sendto(msg, addr)
+
+			else:
+				buf[2] = P2PType.USERINFO
+				for user in users:
+					msg = myutils.convert_chr(buf) + '%s:%s:%s' %(user.name, user.IP(), user.port)
+					server_sock.sendto(msg, addr)
+							
+
+		elif t==P2PType.LOGOUT:
+			name = data[3:]
+
+			removeIndex = -1
+
+			for i in range(len(users)):
+				user = users[i]
+				if (user.name==name):
+					removeIndex = i
+					break
+			if removeIndex>=0:
+				user = users[i];
+				print '%s logout' % user.name
+				users.pop(removeIndex)
+
+		elif t==P2PType.P2PTRANS:
+
+			name = data[3:]
+			buf = [0xFF, 0xFF,P2PType.CALLYOU]
+
+			print '%s:%s wants to call %s' %(addr[0], addr[1], name)
+			
+
+			callIndex = -1;
+
+			for i in range(len(users)):
+				user = users[i]
+				if (user.name==name):
+					callIndex = i
+					break		
+
+			if (callIndex<0):
+				print '%s not existed' %name
+
+				buf[2] = P2PType.P2PTRANSACK
+
+				msg = myutils.convert_chr(buf) + name
+
+				server_sock.sendto(msg, addr)
+			else:
+				user = users[i]
+				ip = user.IP()
+				port = user.port
+
+				buf[2] = P2PType.CALLYOU
+
+				msg = myutils.convert_chr(buf) + '%s:%s' %(addr[0], addr[1])
+
+				server_sock.sendto(msg, (ip, port))
+
 	else:
 		print 'wrong package'
 
